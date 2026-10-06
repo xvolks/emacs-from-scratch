@@ -692,3 +692,40 @@ the vertical drag is done."
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))
+
+(use-package rustic
+  :ensure t
+  :config
+  (setq rustic-format-on-save t)
+  (setq rustic-lsp-client 'eglot)
+  :custom
+  (rustic-cargo-use-last-stored-arguments t))
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(all-the-icons-dired auto-package-update command-log-mode company-box
+			 counsel-projectile dap-mode
+			 dired-hide-dotfiles dired-open dired-single
+			 doom-modeline doom-themes drag-stuff
+			 eshell-git-prompt eterm-256color
+			 evil-collection evil-nerd-commenter forge
+			 general helpful ivy-prescient ivy-rich
+			 lsp-ivy lsp-ui multiple-cursors no-littering
+			 org-bullets python-mode pyvenv
+			 rainbow-delimiters rustic typescript-mode
+			 visual-fill-column vterm)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+(require 'dap-lldb)
+(require 'dap-cpptools)
+(setq dap-gdb-debug-program '("rust-gdb" "-i" "dap"))
+
