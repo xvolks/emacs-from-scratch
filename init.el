@@ -548,6 +548,11 @@ the vertical drag is done."
   (pyvenv-mode 1))
 
 (use-package company
+  :init
+  ;; Enable company everywhere automatically
+  (global-company-mode 1)
+  ;; Allow Tab to complete if indentation is correct
+  (setq tab-always-indent 'complete)
   :after lsp-mode
   :hook (lsp-mode . company-mode)
   :bind (:map company-active-map
@@ -556,10 +561,15 @@ the vertical drag is done."
          ("<tab>" . company-indent-or-complete-common))
   :custom
   (company-minimum-prefix-length 1)
-  (company-idle-delay 0.0))
+  (company-idle-delay 0.1))
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
+
+;; Add this right below your company declaration if you want it working in Rust (Eglot)
+(with-eval-after-load 'eglot
+  (define-key eglot-mode-map (kbd "<tab>") #'company-indent-or-complete-common)
+  (define-key eglot-mode-map (kbd "TAB") #'company-indent-or-complete-common))
 
 (use-package projectile
   :diminish projectile-mode
