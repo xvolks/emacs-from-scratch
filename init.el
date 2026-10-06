@@ -647,6 +647,9 @@ the vertical drag is done."
 (use-package eshell-git-prompt
   :after eshell)
 
+;; Log native compilation warnings silently instead of popping up a buffer
+(setq native-comp-async-report-warnings-errors 'silent)
+
 (use-package eshell
   :hook (eshell-first-time-mode . efs/configure-eshell)
   :config
