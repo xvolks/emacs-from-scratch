@@ -1,5 +1,9 @@
-;; NOTE: init.el is now generated from Emacs.org.  Please edit that file
+;; NOTE: init.el is now generated from Emacs.org.  Please edit that file  -*- lexical-binding: t; -*-
 ;;       in Emacs and init.el will be generated automatically!
+
+(elisp-enable-lexical-binding t)
+;; Log native compilation warnings silently instead of popping up a buffer
+(setq native-comp-async-report-warnings-errors 'silent)
 
 ;; You will most likely need to adjust this font size for your system!
 (defvar efs/default-font-size 180)
