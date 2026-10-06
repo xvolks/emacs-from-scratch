@@ -729,3 +729,9 @@ the vertical drag is done."
 (require 'dap-cpptools)
 (setq dap-gdb-debug-program '("rust-gdb" "-i" "dap"))
 
+(use-package multiple-cursors)
+
+(global-set-key (kbd "C-c m n") #'mc/mark-next-like-this)
+(global-set-key (kbd "C-c m p") #'mc/mark-previous-like-this)
+(global-set-key (kbd "C-c m a") #'mc/mark-all-like-this)
+(global-set-key (kbd "C-c m l") #'mc/edit-lines)
