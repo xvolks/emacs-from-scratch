@@ -131,13 +131,26 @@ the vertical drag is done."
                 eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :font "Fira Code Retina" :height efs/default-font-size)
+(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height efs/default-font-size)
 
 ;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height efs/default-font-size)
+(set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font Mono" :height efs/default-font-size)
 
 ;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil :font "Cantarell" :height efs/default-variable-font-size :weight 'regular)
+(set-face-attribute 'variable-pitch nil :font "Arial" :height efs/default-variable-font-size :weight 'regular)
+
+(use-package nerd-icons
+  :custom
+  ;; Ensure this matches your installed font name exactly
+  (nerd-icons-font-family "Symbols Nerd Font Mono"))
+
+(when (member "FiraCode Nerd Font" (font-family-list))
+  ;; Set the primary default font face
+  (set-face-attribute 'default nil :family "FiraCode Nerd Font" :height 150)
+  
+  ;; Map Nerd Font specific unicode symbol blocks to the FiraCode fallback fontset
+  (set-fontset-font t '(#xE000 . #xF8FF) (font-spec :family "FiraCode Nerd Font"))
+  (set-fontset-font t '(#xF0000 . #xFFFFD) (font-spec :family "FiraCode Nerd Font")))
 
 ;; Make ESC quit prompts
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
@@ -196,6 +209,18 @@ the vertical drag is done."
   :config
   (which-key-mode)
   (setq which-key-idle-delay 1))
+
+(with-eval-after-load 'doom-modeline  ; Replace with your modeline package if not using Doom
+  ;; Force specific Nerd Font icon blocks to be treated as single-column width
+  (let ((row #xE000))
+    (while (<= row #xF8FF)
+      (aset char-width-table row 1)
+      (setq row (1+ row))))
+  
+  (let ((row #xF0000))
+    (while (<= row #xFFFFD)
+      (aset char-width-table row 1)
+      (setq row (1+ row)))))
 
 (use-package ivy
   :diminish
@@ -276,7 +301,7 @@ the vertical drag is done."
                   (org-level-6 . 1.1)
                   (org-level-7 . 1.1)
                   (org-level-8 . 1.1)))
-    (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+    (set-face-attribute (car face) nil :font "Arial" :weight 'regular :height (cdr face)))
 
   ;; Ensure that anything that should be fixed-pitch in Org files appears that way
   (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch)
