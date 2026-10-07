@@ -12,9 +12,6 @@
 ;; Make frame transparency overridable
 (defvar efs/frame-transparency '(99 . 99))
 
-;; The default is 800 kilobytes.  Measured in bytes.
-(setq gc-cons-threshold (* 50 1000 1000))
-
 (defun efs/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
            (format "%.2f seconds"
@@ -27,9 +24,10 @@
 ;; Initialize package sources
 (require 'package)
 
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("org" . "https://orgmode.org/elpa/")
-                         ("elpa" . "https://elpa.gnu.org/packages/")))
+(setq package-archives '(("melpa"	.	"https://melpa.org/packages/")
+                         ("org"		.	"https://orgmode.org/elpa/")
+			 ("nongnu"	.	"https://elpa.nongnu.org/nongnu/")
+                         ("elpa"	.	"https://elpa.gnu.org/packages/")))
 
 (package-initialize)
 (unless package-archive-contents
@@ -304,7 +302,7 @@ the vertical drag is done."
     (set-face-attribute (car face) nil :font "Arial" :weight 'regular :height (cdr face)))
 
   ;; Ensure that anything that should be fixed-pitch in Org files appears that way
-  (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch)
+  (set-face-attribute 'org-block nil    :foreground 'unspecified :inherit 'fixed-pitch)
   (set-face-attribute 'org-table nil    :inherit 'fixed-pitch)
   (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch)
   (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch))
@@ -474,28 +472,6 @@ the vertical drag is done."
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (add-to-list 'org-structure-template-alist '("py" . "src python")))
 
-;; Automatically tangle our Emacs.org config file when we save it
-(defun efs/org-babel-tangle-config ()
-  (when (string-equal (file-name-directory (buffer-file-name))
-                      (expand-file-name user-emacs-directory))
-    ;; Dynamic scoping to the rescue
-    (let ((org-confirm-babel-evaluate nil))
-      (org-babel-tangle))))
-
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
-
-(defun efs/lsp-mode-setup ()
-  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
-(use-package lsp-mode
-  :commands (lsp lsp-deferred)
-  :hook (lsp-mode . efs/lsp-mode-setup)
-  :init
-  (setq lsp-keymap-prefix "C-c l")  ;; Or 'C-l', 's-l'
-  :config
-  (lsp-enable-which-key-integration t))
-
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
   :custom
@@ -506,24 +482,6 @@ the vertical drag is done."
 
 (use-package lsp-ivy
   :after lsp)
-
-(use-package dap-mode
-  ;; Uncomment the config below if you want all UI panes to be hidden by default!
-  ;; :custom
-  ;; (lsp-enable-dap-auto-configure nil)
-  ;; :config
-  ;; (dap-ui-mode 1)
-  :commands dap-debug
-  :config
-  ;; Set up Node debugging
-  (require 'dap-node)
-  (dap-node-setup) ;; Automatically installs Node debug adapter if needed
-
-  ;; Bind `C-c l d` to `dap-hydra` for easy access
-  (general-define-key
-    :keymaps 'lsp-mode-map
-    :prefix lsp-keymap-prefix
-    "d" '(dap-hydra t :wk "debugger")))
 
 (use-package typescript-mode
   :mode "\\.ts\\'"
@@ -536,8 +494,8 @@ the vertical drag is done."
   :hook (python-mode . lsp-deferred)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
-  ;; (python-shell-interpreter "python3")
-  ;; (dap-python-executable "python3")
+  (python-shell-interpreter "python3")
+  (dap-python-executable "python3")
   (dap-python-debugger 'debugpy)
   :config
   (require 'dap-python))
@@ -546,30 +504,6 @@ the vertical drag is done."
   :after python-mode
   :config
   (pyvenv-mode 1))
-
-(use-package company
-  :init
-  ;; Enable company everywhere automatically
-  (global-company-mode 1)
-  ;; Allow Tab to complete if indentation is correct
-  (setq tab-always-indent 'complete)
-  :after lsp-mode
-  :hook (lsp-mode . company-mode)
-  :bind (:map company-active-map
-         ("<tab>" . company-complete-selection))
-        (:map lsp-mode-map
-         ("<tab>" . company-indent-or-complete-common))
-  :custom
-  (company-minimum-prefix-length 1)
-  (company-idle-delay 0.1))
-
-(use-package company-box
-  :hook (company-mode . company-box-mode))
-
-;; Add this right below your company declaration if you want it working in Rust (Eglot)
-(with-eval-after-load 'eglot
-  (define-key eglot-mode-map (kbd "<tab>") #'company-indent-or-complete-common)
-  (define-key eglot-mode-map (kbd "TAB") #'company-indent-or-complete-common))
 
 (use-package projectile
   :diminish projectile-mode
@@ -690,45 +624,289 @@ the vertical drag is done."
   (evil-collection-define-key 'normal 'dired-mode-map
     "H" 'dired-hide-dotfiles-mode))
 
-;; Make gc pauses faster by decreasing the threshold.
-(setq gc-cons-threshold (* 2 1000 1000))
+(add-hook 'emacs-startup-hook
+          (lambda () (setq gc-cons-threshold (* 64 1024 1024))))
 
-(use-package rustic
-  :ensure t
-  :config
-  (setq rustic-format-on-save t)
-  (setq rustic-lsp-client 'eglot)
+;;;; Choix du moteur de complétion : 'corfu ou 'company
+(defvar my/completion 'corfu)
+
+;;;; Confort de base
+(setq inhibit-startup-screen t
+      make-backup-files nil
+      auto-save-default nil
+      ring-bell-function 'ignore
+      custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file 'noerror)
+(global-display-line-numbers-mode 1)
+(column-number-mode 1)
+(electric-pair-mode 1)
+(show-paren-mode 1)
+(global-auto-revert-mode 1)
+(save-place-mode 1)
+(recentf-mode 1)
+(delete-selection-mode 1)
+(setq-default indent-tabs-mode nil)
+(fset 'yes-or-no-p 'y-or-n-p)
+(add-to-list 'exec-path (expand-file-name "~/.cargo/bin"))
+(setenv "PATH" (concat (expand-file-name "~/.cargo/bin:") (getenv "PATH")))
+
+(use-package exec-path-from-shell     ; utile sous macOS
+  :if (memq window-system '(mac ns))
+  :config (exec-path-from-shell-initialize))
+
+(use-package yasnippet
+  :config (yas-global-mode 1))
+(use-package yasnippet-snippets)
+
+;;;; Complétion : Corfu
+(use-package corfu
+  :if (eq my/completion 'corfu)
   :custom
-  (rustic-cargo-use-last-stored-arguments t))
+  (corfu-auto t)
+  (corfu-auto-delay 0.1)
+  (corfu-auto-prefix 1)
+  (corfu-cycle t)
+  (corfu-preselect 'prompt)
+  :bind (:map corfu-map
+              ("TAB"   . corfu-next)
+              ([tab]   . corfu-next)
+              ("S-TAB" . corfu-previous)
+              ([backtab] . corfu-previous))
+  :init (global-corfu-mode 1))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(all-the-icons-dired auto-package-update command-log-mode company-box
-			 counsel-projectile dap-mode
-			 dired-hide-dotfiles dired-open dired-single
-			 doom-modeline doom-themes drag-stuff
-			 eshell-git-prompt eterm-256color
-			 evil-collection evil-nerd-commenter forge
-			 general helpful ivy-prescient ivy-rich
-			 lsp-ivy lsp-ui multiple-cursors no-littering
-			 org-bullets python-mode pyvenv
-			 rainbow-delimiters rustic typescript-mode
-			 visual-fill-column vterm)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+(use-package cape
+  :if (eq my/completion 'corfu)
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-file))
 
-(require 'dap-lldb)
-(require 'dap-cpptools)
-(setq dap-gdb-debug-program '("rust-gdb" "-i" "dap"))
+;;;; Complétion : Company (alternative)
+(use-package company
+  :if (eq my/completion 'company)
+  :hook (prog-mode . company-mode)
+  :custom
+  (company-idle-delay 0.1)
+  (company-minimum-prefix-length 1)
+  (company-tooltip-align-annotations t)
+  :bind (:map company-active-map
+              ("TAB" . company-complete-selection)
+              ("C-n" . company-select-next)
+              ("C-p" . company-select-previous)))
 
+;;;; Flycheck
+(use-package flycheck
+  :hook (prog-mode . flycheck-mode)
+  :custom (flycheck-check-syntax-automatically '(save mode-enabled idle-change))
+  :bind (:map flycheck-mode-map
+              ("M-n" . flycheck-next-error)
+              ("M-p" . flycheck-previous-error)))
+
+;;;; Rust : rustic (basé sur rust-mode)
+(use-package rustic
+  :custom
+  (rustic-lsp-client 'lsp-mode)
+  (rustic-format-trigger 'on-save)
+  (rustic-analyzer-command '("rust-analyzer"))
+  :bind (:map rustic-mode-map
+              ("C-c C-c l" . flycheck-list-errors)
+              ("C-c C-c a" . lsp-execute-code-action)
+              ("C-c C-c r" . lsp-rename)
+              ("C-c C-c q" . lsp-workspace-restart)
+              ("C-c C-c Q" . lsp-workspace-shutdown)
+              ("C-c C-c s" . lsp-rust-analyzer-status)
+              ("C-c C-c b" . rustic-cargo-build)
+              ("C-c C-c k" . rustic-cargo-clippy)
+              ("C-c C-c t" . rustic-cargo-current-test)
+              ("C-c C-c T" . rustic-cargo-test)
+              ("C-c C-c R" . rustic-cargo-run)
+              ("C-c C-c f" . rustic-format-buffer)
+              ("M-?"       . lsp-find-references)
+              ("M-j"       . lsp-ui-imenu))
+  :config
+  (add-hook 'rustic-mode-hook #'my/rust-mode-setup))
+
+(defun my/rust-mode-setup ()
+  (setq-local indent-tabs-mode nil
+              fill-column 100)
+  (when (eq my/completion 'company)
+    (setq-local company-backends '(company-capf))))
+
+(use-package toml-mode :mode "\\.toml\\'")
+(use-package flycheck-rust
+  :after (flycheck rustic)
+  :hook (flycheck-mode . flycheck-rust-setup))
+
+;;;; LSP mode
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook ((rustic-mode . lsp-deferred)
+         (lsp-mode . lsp-enable-which-key-integration))
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  ;; Corfu : on gère le style nous-mêmes (orderless)
+  (when (eq my/completion 'corfu)
+    (setq lsp-completion-provider :none)
+    (defun my/lsp-corfu-setup ()
+      (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+            '(orderless)))
+    (add-hook 'lsp-completion-mode-hook #'my/lsp-corfu-setup))
+  :custom
+  (lsp-idle-delay 0.5)
+  (lsp-log-io nil)
+  (lsp-enable-snippet t)
+  (lsp-headerline-breadcrumb-mode)
+  (lsp-headerline-breadcrumb-enable t)
+  (lsp-signature-auto-activate t)
+  (lsp-eldoc-render-all nil)
+  (lsp-modeline-diagnostics-enable t)
+  (lsp-diagnostics-provider :flycheck)
+  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+  ;; rust-analyzer
+  (lsp-rust-analyzer-cargo-watch-command "clippy")
+  (lsp-rust-analyzer-cargo-all-targets t)
+  (lsp-rust-analyzer-cargo-load-out-dirs-from-check t)
+  (lsp-rust-analyzer-proc-macro-enable t)
+  (lsp-rust-analyzer-server-display-inlay-hints t)
+  (lsp-rust-analyzer-display-parameter-hints t)
+  (lsp-rust-analyzer-display-chaining-hints t)
+  (lsp-rust-analyzer-display-closure-return-type-hints t)
+  (lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+  (lsp-rust-analyzer-completion-add-call-parenthesis t)
+  (lsp-rust-analyzer-import-granularity "module")
+  (lsp-rust-analyzer-macro-expansion-method 'lsp-rust-analyzer-macro-expansion-default)
+  (lsp-rust-analyzer-debug-lens-extra-dap-args
+   '(:MIMode "lldb" :miDebuggerPath "rust-lldb"))
+  :bind (:map lsp-mode-map
+              ("C-c l d" . lsp-find-definition)
+              ("C-c l i" . lsp-find-implementation)
+              ("C-c l t" . lsp-find-type-definition)
+              ("C-c l R" . lsp-rust-analyzer-related-tests)
+              ("C-c l e" . lsp-rust-analyzer-expand-macro)
+              ("C-c l j" . lsp-rust-analyzer-join-lines)
+              ("C-c l h" . lsp-rust-analyzer-inlay-hints-mode)))
+
+(use-package lsp-ui
+  :after lsp-mode
+  :custom
+  (lsp-ui-doc-enable t)
+  (lsp-ui-doc-position 'at-point)
+  (lsp-ui-doc-delay 0.5)
+  (lsp-ui-peek-always-show t)
+  (lsp-ui-sideline-show-hover nil)
+  (lsp-ui-sideline-show-code-actions t)
+  :bind (:map lsp-ui-mode-map
+              ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+              ([remap xref-find-references]  . lsp-ui-peek-find-references)))
+
+
+(require 'json)
+(require 'seq)
+
+(use-package dap-mode
+  :after lsp-mode
+  :commands (dap-debug dap-debug-edit-template)
+  :custom
+  (dap-auto-configure-features '(sessions locals breakpoints expressions repl controls tooltip))
+  :config
+  (dap-auto-configure-mode 1)
+  (require 'dap-codelldb)    ; M-x  (une fois)
+  (require 'dap-cpptools)    ; requis par le bouton "Debug" ; M-x dap-cpptools-setup (une fois)
+  (setq lsp-rust-analyzer-debug-lens-extra-dap-args
+      `(:MIMode "lldb"
+        :miDebuggerPath
+        ,(expand-file-name "../lldb-mi/bin/lldb-mi"
+                           (file-name-directory dap-cpptools-debug-path))
+        :stopAtEntry t
+        :externalConsole :json-false)))
+
+(defun my/rust--cargo-metadata (root)
+  (let ((default-directory root))
+    (with-temp-buffer
+      (unless (zerop (call-process "cargo" nil '(t nil) nil
+                                   "metadata" "--no-deps" "--format-version" "1"))
+        (user-error "cargo metadata a échoué dans %s" root))
+      (goto-char (point-min))
+      (json-parse-buffer :object-type 'alist :array-type 'list))))
+
+(defun my/rust--debug-target ()
+  "Retourne (ROOT PACKAGE KIND NAME PROGRAM) pour le buffer courant."
+  (let* ((file (or buffer-file-name (user-error "Buffer sans fichier")))
+         (root (expand-file-name
+                (or (locate-dominating-file file "Cargo.toml")
+                    (user-error "Pas de Cargo.toml au-dessus de %s" file))))
+         (meta (my/rust--cargo-metadata root))
+         (manifest (expand-file-name "Cargo.toml" root))
+         (pkg (or (seq-find (lambda (p) (file-equal-p (alist-get 'manifest_path p) manifest))
+                            (alist-get 'packages meta))
+                  (user-error "Manifeste virtuel : ouvrez un fichier d'un crate membre")))
+         (targets (seq-filter
+                   (lambda (tg) (seq-intersection '("bin" "example") (alist-get 'kind tg)))
+                   (alist-get 'targets pkg)))
+         (tg (or (seq-find (lambda (tg) (file-equal-p (alist-get 'src_path tg) file)) targets)
+                 (and (= (length targets) 1) (car targets))
+                 (and targets
+                      (let ((choice (completing-read
+                                     "Cible à déboguer : "
+                                     (mapcar (lambda (tg) (alist-get 'name tg)) targets)
+                                     nil t)))
+                        (seq-find (lambda (tg) (string= (alist-get 'name tg) choice)) targets)))
+                 (user-error "Aucune cible bin/example dans ce paquet")))
+         (name (alist-get 'name tg))
+         (example (member "example" (alist-get 'kind tg)))
+         (program (expand-file-name
+                   (concat (if example "examples/" "") name)
+                   (expand-file-name "debug/" (alist-get 'target_directory meta)))))
+    (list root (alist-get 'name pkg) (if example "example" "bin") name program)))
+
+;; Force le bouton debug a utiliser ma config pour CoreLLDB
+(with-eval-after-load 'lsp-rust
+  (advice-add 'lsp-rust-analyzer-debug :override
+              (lambda (&rest _) (my/rust-dap-debug))))
+
+(defun my/rust-dap-debug (&optional args)
+  "Compile puis débogue (CodeLLDB) la cible du buffer courant.
+Avec C-u, demande les arguments du programme."
+  (interactive "P")
+  (save-some-buffers t)
+  (pcase-let* ((`(,root ,pkg ,kind ,name ,program) (my/rust--debug-target))
+               (prog-args (if args
+                              (vconcat (split-string-and-unquote (read-string "Arguments : ")))
+                            [])))
+    (dap-debug
+     (list :type "lldb"
+           :request "launch"
+           :name (format "Rust::%s" name)
+           :program program
+           :cwd (expand-file-name root)
+           :args prog-args
+           :env (list :RUST_BACKTRACE "1")
+           :termnal "console"
+           :sourceLanguages ["rust"]
+           :dap-compilation (format "cargo build -p %s --%s %s" pkg kind name)
+           :dap-compilation-dir root))))
+
+(global-set-key (kbd "C-c d d") #'my/rust-dap-debug)
+(global-set-key (kbd "C-c d D") #'dap-debug)
+(global-set-key (kbd "C-c d l") #'dap-debug-last)
+(global-set-key (kbd "C-c d e") #'dap-debug-edit-template)
+(global-set-key (kbd "C-c d t") #'dap-breakpoint-toggle)
+(global-set-key (kbd "C-c d c") #'dap-breakpoint-condition)
+(global-set-key (kbd "C-c d L") #'dap-breakpoint-log-message)
+(global-set-key (kbd "C-c d n") #'dap-next)
+(global-set-key (kbd "C-c d s") #'dap-step-in)
+(global-set-key (kbd "C-c d o") #'dap-step-out)
+(global-set-key (kbd "C-c d r") #'dap-continue)
+(global-set-key (kbd "C-c d x") #'dap-eval)
+(global-set-key (kbd "C-c d w") #'dap-ui-expressions-add)
+(global-set-key (kbd "C-c d q") #'dap-disconnect)
+(global-set-key (kbd "C-c d Q") #'dap-delete-all-sessions)
+(global-set-key (kbd "C-c d h") #'dap-hydra)
+
+;;;; Raccourcis généraux
+(global-set-key (kbd "C-c c") #'compile)
+(global-set-key (kbd "C-c e") #'flycheck-list-errors)
+(global-set-key (kbd "C-x C-r") #'recentf-open)
+
+;;;; Multi-edition
 (use-package multiple-cursors)
 
 (global-set-key (kbd "C-c m n") #'mc/mark-next-like-this)
@@ -736,4 +914,6 @@ the vertical drag is done."
 (global-set-key (kbd "C-c m a") #'mc/mark-all-like-this)
 (global-set-key (kbd "C-c m l") #'mc/edit-lines)
 
-(server-start)
+
+(provide 'init)
+;;; init.el ends here
