@@ -2,8 +2,25 @@
 
 [README.org](README.org)
 
-## Some post install
+## MacOS Installation
 
+```console
+brew install font-jetbrains-mono-nerd-font
+brew install emacs-dracula
+brew install cmake
+brew install libvterm
+```
+
+## Some post install
+Install a recent codelldb.vsx from [Github](https://github.com/vadimcn/codelldb/releases/):
+```bash
+d=~/.emacs.d/var/dap/extensions/vscode/codelldb
+mkdir -p $d && unzip -o ~/Download/codelldb-darwin-arm64.vsix -d $d
+chmod +x $d/extension/adapter/codelldb
+xattr -dr com.apple.quarantine $d
+```
+
+**DO NOT USE THIS: IT INSTALLS A DEPRECATED VERSION** (as 2026-10-08, time of writting)
 ```emacs
     M-x dap-codelldb-setup
 ```
@@ -26,12 +43,4 @@
 | Évaluer / watch                        | C-c d x / C-c d w     |
 | Menu hydra de débogage                 | C-c d h               |
 
-## MacOS Installation
-
-```console
-brew install font-jetbrains-mono-nerd-font
-brew install emacs-dracula
-brew install cmake
-brew install libvterm
-```
 
