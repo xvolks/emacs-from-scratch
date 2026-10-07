@@ -25,6 +25,10 @@ xattr -dr com.apple.quarantine $d
     M-x dap-codelldb-setup
 ```
 
+## Truc bizarre à mettre dans le init.el
+
+_inheritenv_ est une vraie dépendance de _rustic_. Elle devrait s'installer automatiquement, mais vérifiez avec *M-x package-list-packages* et *C-s inheritenv*. Si elle manque, faites *M-x package-install RET inheritenv*
+
 ## Raccourcis
 
 | Action                                 | Touche                |
