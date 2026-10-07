@@ -40,6 +40,14 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(use-package general
+  :demand t
+  :config
+  (general-create-definer efs/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC"))
+
 (use-package drag-stuff)
 ;; https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-drag-stuff.el
 ;; http://emacs.stackexchange.com/a/13942/115
