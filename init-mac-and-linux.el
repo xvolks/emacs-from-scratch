@@ -174,13 +174,13 @@ the vertical drag is done."
 :ensure t
 :config
   (unless (find-font (font-spec :name "Symbols Nerd Font Mono"))
-    (nerd-icons-install-fonts t)))   
+    (nerd-icons-install-fonts t))   
   :custom
   ;; Ensure this matches your installed font name exactly
   (nerd-icons-font-family "Symbols Nerd Font Mono"))
     
 ;; Nerd Font fallback — try both macOS and Linux font names
-(let (font-name font-name))
+(let (font-name font-name)
   (when (member font-name (font-family-list))
     ;; Set the primary default font face
     (set-face-attribute 'default nil :family font-name :height 150)
