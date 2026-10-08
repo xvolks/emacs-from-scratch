@@ -1,4 +1,4 @@
-;; init-mac-and-linux.el — Multi-platform Emacs configuration
+;; init-mac-and-linux.el — Multi-platform Emacs configuration  -*- lexical-binding: t; -*-
 ;; Derived from init.el, adapted for macOS and Linux (x86_64 & aarch64)
 ;; -*- lexical-binding: t; -*-
 
@@ -140,35 +140,47 @@ the vertical drag is done."
 
 ;; ---- Platform-specific font configuration ----
 ;; macOS: "FiraCode Nerd Font Mono" (as installed via Homebrew)
-;; Linux:  "FiraCode Nerd Font"    (as installed via apt/dnf/pacman)
+;; Linux:  "FiraCode Font"    (as installed via apt/dnf/pacman)
+(setq font-name
+      (cond
+       ((eq system-type 'darwin)
+	;; macOS font names
+	"FiraCode Nerd Font Mono")
+       ((eq system-type 'gnu/linux)
+	;; Linux font names — adjust if your distro uses different font naming
+	"Fira Code")
+       (t
+	;; Fallback for other systems (Windows, etc.)
+	"FiraCode Nerd Font")))
 
-(cond
- ((eq system-type 'darwin)
-  ;; macOS font names
-  (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height efs/default-font-size)
-  (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font Mono" :height efs/default-font-size)
-  (set-face-attribute 'variable-pitch nil :font "Arial" :height efs/default-variable-font-size :weight 'regular))
- ((eq system-type 'gnu/linux)
-  ;; Linux font names — adjust if your distro uses different font naming
-  (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height efs/default-font-size)
-  (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height efs/default-font-size)
-  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height efs/default-variable-font-size :weight 'regular))
- (t
-  ;; Fallback for other systems (Windows, etc.)
-  (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height efs/default-font-size)
-  (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height efs/default-font-size)
-  (set-face-attribute 'variable-pitch nil :font "Arial" :height efs/default-variable-font-size :weight 'regular)))
+(setq font-name-variable
+      (cond
+       ((eq system-type 'darwin)
+	;; macOS font names
+	"Arial")
+       ((eq system-type 'gnu/linux)
+	;; Linux font names — adjust if your distro uses different font naming
+	"Cantarell")
+       (t
+	;; Fallback for other systems (Windows, etc.)
+	"Arial")))
+
+(set-face-attribute 'default nil :font font-name :height efs/default-font-size)
+(set-face-attribute 'fixed-pitch nil :font font-name :height efs/default-font-size)
+(set-face-attribute 'variable-pitch nil :font font-name-variable :height efs/default-variable-font-size :weight 'regular)
+
 
 (use-package nerd-icons
+:ensure t
+:config
+  (unless (find-font (font-spec :name "Symbols Nerd Font Mono"))
+    (nerd-icons-install-fonts t)))   
   :custom
   ;; Ensure this matches your installed font name exactly
   (nerd-icons-font-family "Symbols Nerd Font Mono"))
-
+    
 ;; Nerd Font fallback — try both macOS and Linux font names
-(let ((font-name (cond
-                  ((eq system-type 'darwin) "FiraCode Nerd Font Mono")
-                  ((eq system-type 'gnu/linux) "FiraCode Nerd Font")
-                  (t "FiraCode Nerd Font"))))
+(let (font-name font-name))
   (when (member font-name (font-family-list))
     ;; Set the primary default font face
     (set-face-attribute 'default nil :family font-name :height 150)
