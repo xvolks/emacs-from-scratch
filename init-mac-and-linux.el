@@ -982,6 +982,8 @@ Avec C-u, demande les arguments du programme."
 (global-set-key (kbd "C-c m a") #'mc/mark-all-like-this)
 (global-set-key (kbd "C-c m l") #'mc/edit-lines)
 
+(add-to-list 'load-path (expand-file-name (concat user-emacs-directory "umka-mode/")))
+(require 'umka-mode)
 
 (provide 'init-mac-and-linux)
 ;;; init-mac-and-linux.el ends here

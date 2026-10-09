@@ -1,0 +1,3 @@
+[submodule "umka-mode"]
+	path = umka-mode
+	url = https://github.com/rexim/umka-mode.git
