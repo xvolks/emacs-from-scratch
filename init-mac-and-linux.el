@@ -1,9 +1,12 @@
-;; init-mac-and-linux.el — Multi-platform Emacs configuration  -*- lexical-binding: t; -*-
+;;; init.el --- Multi-platform Emacs configuration -*- lexical-binding: t; -*-
+;;; Commentary:
 ;; Derived from init.el, adapted for macOS and Linux (x86_64 & aarch64)
-;; -*- lexical-binding: t; -*-
 
+
+;;; Code:
 (elisp-enable-lexical-binding t)
 ;; Log native compilation warnings silently instead of popping up a buffer
+(defvar native-comp-async-report-warnings-errors)
 (setq native-comp-async-report-warnings-errors 'silent)
 
 (defvar use-evil nil
@@ -20,6 +23,7 @@
 (defvar efs/frame-transparency '(99 . 99))
 
 (defun efs/display-startup-time ()
+  "Shows the elapsed time used by Emacs to start."
   (message "Emacs loaded in %s with %d garbage collections. With%s evil mode."
            (format "%.2f seconds"
                    (float-time
@@ -64,8 +68,8 @@
 (defvar modi/drag-stuff--point-mark-exchanged nil)
 
 (defun modi/drag-stuff--adj-pt-pre-drag ()
-  "If a region is selected AND the `point' is in the first column, move
-back the point by one char so that it ends up on the previous line. If the
+  "If a region is selected AND the `point' is in the first column, move \n\
+back the point by one char so that it ends up on the previous line.  If the\n\
 point is above the mark, exchange the point and mark temporarily."
   (when (region-active-p)
     (when (< (point) (mark)) ; selection is done starting from bottom to up
@@ -82,7 +86,7 @@ point is above the mark, exchange the point and mark temporarily."
         (setq modi/drag-stuff--point-mark-exchanged nil)))))
 
 (defun modi/drag-stuff--rst-pt-post-drag ()
-  "Restore the `point' to where it was by forwarding it by one char after
+  "Restore the `point' to where it was by forwarding it by one char after\n\
 the vertical drag is done."
   (when modi/drag-stuff--point-adjusted
     (forward-char 1)
@@ -149,6 +153,8 @@ the vertical drag is done."
 ;; ---- Platform-specific font configuration ----
 ;; macOS: "FiraCode Nerd Font Mono" (as installed via Homebrew)
 ;; Linux:  "FiraCode Font"    (as installed via apt/dnf/pacman)
+(defvar font-name)
+(defvar font-name-variable)
 (setq font-name
       (cond
        ((eq system-type 'darwin)
@@ -182,7 +188,7 @@ the vertical drag is done."
 :ensure t
 :config
   (unless (find-font (font-spec :name "Symbols Nerd Font Mono"))
-    (nerd-icons-install-fonts t))   
+    (nerd-icons-install-fonts t))
   :custom
   ;; Ensure this matches your installed font name exactly
   (nerd-icons-font-family "Symbols Nerd Font Mono"))
@@ -211,7 +217,10 @@ the vertical drag is done."
   (efs/leader-keys
     "t"  '(:ignore t :which-key "toggles")
     "tt" '(counsel-load-theme :which-key "choose theme")
-    "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/Emacs.org")))))
+    "fde" (lambda ()
+            "Open Emacs.org."
+            (interactive)
+            (find-file (expand-file-name "~/.emacs.d/Emacs.org")))))
 
 (cond
  (use-evil
@@ -337,7 +346,7 @@ the vertical drag is done."
   "ts" '(hydra-text-scale/body :which-key "scale text"))
 
 (defun efs/org-font-setup ()
-  ;; Replace list hyphen with dot
+  "Replace list hyphen with dot."
   (font-lock-add-keywords 'org-mode
                           '(("^ *\\([-]\\) "
                              (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
@@ -371,6 +380,7 @@ the vertical drag is done."
   (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch))
 
 (defun efs/org-mode-setup ()
+  "Setup `org-mode'."
   (org-indent-mode)
   (variable-pitch-mode 1)
   (visual-line-mode 1))
@@ -504,7 +514,10 @@ the vertical drag is done."
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
+(defvar visual-fill-column-width)
+(defvar visual-fill-column-center-text)
 (defun efs/org-mode-visual-fill ()
+  "Set `org-mode' visual fill."
   (setq visual-fill-column-width 100
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
@@ -617,13 +630,24 @@ the vertical drag is done."
   ;;(setq vterm-shell "zsh")                       ;; Set this to customize the shell to launch
   (setq vterm-max-scrollback 10000))
 
+;; LOL
+(defvar explicit-powershell.exe-args)
 (cond
  ((eq system-type 'windows-nt)
   (setq explicit-shell-file-name "powershell.exe")
   (setq explicit-powershell.exe-args '())))
 
+(defvar eshell-output-filter-functions)
+(defvar eshell-history-size)
+(defvar eshell-buffer-maximum-lines)
+(defvar eshell-hist-ignoredups)
+(defvar eshell-scroll-to-bottom-on-input)
+;; (defvar eshell-destroy-buffer-when-process-die)
+(defvar eshell-destroy-buffer-when-process-dies)
+(defvar eshell-visual-commands)
+
 (defun efs/configure-eshell ()
-  ;; Save command history when commands are entered
+  "Save command history when commands are entered."
   (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
 
   ;; Truncate buffer for performance
@@ -632,12 +656,11 @@ the vertical drag is done."
   ;; Bind some useful keys for evil-mode
   (cond
    (use-evil
-    (nil (message "Evil mode disabled in efs/configure-eshel"))
-    (t
-     (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
-     (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
-     (evil-normalize-keymaps)
-     )
+    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
+    (evil-normalize-keymaps))
+   (t
+    (message "Evil mode disabled in efs/configure-eshell")
     ))
 
   (setq eshell-history-size         10000
@@ -797,6 +820,7 @@ the vertical drag is done."
   (add-hook 'rustic-mode-hook #'my/rust-mode-setup))
 
 (defun my/rust-mode-setup ()
+  "Rust mode setup."
   (setq-local indent-tabs-mode nil
               fill-column 100)
   (when (eq my/completion 'company)
@@ -808,6 +832,7 @@ the vertical drag is done."
   :hook (flycheck-mode . flycheck-rust-setup))
 
 ;;;; LSP mode
+(defvar lsp-completion-provider)
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
   :hook ((rustic-mode . lsp-deferred)
@@ -877,6 +902,9 @@ the vertical drag is done."
 ;; Linux: uses CodeLLDB with system lldb or bundled lldb-mi
 ;; Architecture: x86_64 vs aarch64 handled by system-configuration
 
+(defvar dap-cpptools-debug-path)
+(defvar lsp-rust-analyzer-debug-lens-extra-dap-args)
+
 (use-package dap-mode
   :after lsp-mode
   :commands (dap-debug dap-debug-edit-template)
@@ -912,11 +940,12 @@ the vertical drag is done."
           :externalConsole :json-false))))
 
 (defun my/rust--cargo-metadata (root)
+  "Setup cargo metadata from ROOT directory."
   (let ((default-directory root))
     (with-temp-buffer
       (unless (zerop (call-process "cargo" nil '(t nil) nil
                                    "metadata" "--no-deps" "--format-version" "1"))
-        (user-error "cargo metadata a échoué dans %s" root))
+        (user-error "ERR: cargo metadata a échoué dans %s" root))
       (goto-char (point-min))
       (json-parse-buffer :object-type 'alist :array-type 'list))))
 
@@ -956,8 +985,8 @@ the vertical drag is done."
               (lambda (&rest _) (my/rust-dap-debug))))
 
 (defun my/rust-dap-debug (&optional args)
-  "Compile puis débogue (CodeLLDB) la cible du buffer courant.
-Avec C-u, demande les arguments du programme."
+  "Compile puis débogue (CodeLLDB) la cible du buffer courant.\n\
+Avec \\[], demande les arguments du programme (ARGS)."
   (interactive "P")
   (save-some-buffers t)
   (pcase-let* ((`(,root ,pkg ,kind ,name ,program) (my/rust--debug-target))
@@ -1010,5 +1039,5 @@ Avec C-u, demande les arguments du programme."
 (add-to-list 'load-path (expand-file-name (concat user-emacs-directory "umka-mode/")))
 (require 'umka-mode)
 
-(provide 'init-mac-and-linux)
-;;; init-mac-and-linux.el ends here
+(provide 'init)
+;;; init.el ends here
