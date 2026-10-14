@@ -8,8 +8,9 @@
 
 (defvar use-evil nil
   "Use Evil package if t, disable it with nil.")
-(defun use-evil() use-evil
-  "Returns the use-evil variable.")
+(defun use-evil ()
+  "Returns the use-evil variable."
+  use-evil)
 
 ;; You will most likely need to adjust this font size for your system!
 (defvar efs/default-font-size 180)
