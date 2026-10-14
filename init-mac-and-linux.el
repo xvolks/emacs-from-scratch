@@ -6,6 +6,11 @@
 ;; Log native compilation warnings silently instead of popping up a buffer
 (setq native-comp-async-report-warnings-errors 'silent)
 
+(defvar use-evil nil
+  "Use Evil package if t, disable it with nil.")
+(defun use-evil() use-evil
+  "Returns the use-evil variable.")
+
 ;; You will most likely need to adjust this font size for your system!
 (defvar efs/default-font-size 180)
 (defvar efs/default-variable-font-size 180)
@@ -14,11 +19,13 @@
 (defvar efs/frame-transparency '(99 . 99))
 
 (defun efs/display-startup-time ()
-  (message "Emacs loaded in %s with %d garbage collections."
+  (message "Emacs loaded in %s with %d garbage collections. With%s evil mode."
            (format "%.2f seconds"
                    (float-time
                      (time-subtract after-init-time before-init-time)))
-           gcs-done))
+           gcs-done
+           (if use-evil "" "out")
+           ))
 
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
@@ -205,28 +212,33 @@ the vertical drag is done."
     "tt" '(counsel-load-theme :which-key "choose theme")
     "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/Emacs.org")))))
 
-(use-package evil
-  :init
-  (setq evil-want-integration t)
-  (setq evil-want-keybinding nil)
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-i-jump nil)
-  :config
-  (evil-mode 1)
-  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
-  (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
+(cond
+ (use-evil
+  (use-package evil
+    :init
+    (setq evil-want-integration t)
+    (setq evil-want-keybinding nil)
+    (setq evil-want-C-u-scroll t)
+    (setq evil-want-C-i-jump nil)
+    :config
+    (evil-mode 1)
+    (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+    (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
 
-  ;; Use visual line motions even outside of visual-line-mode buffers
-  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-  (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+    ;; Use visual line motions even outside of visual-line-mode buffers
+    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+    (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
 
-  (evil-set-initial-state 'messages-buffer-mode 'normal)
-  (evil-set-initial-state 'dashboard-mode 'normal))
+    (evil-set-initial-state 'messages-buffer-mode 'normal)
+    (evil-set-initial-state 'dashboard-mode 'normal))
 
-(use-package evil-collection
-  :after evil
-  :config
-  (evil-collection-init))
+  (use-package evil-collection
+    :after evil
+    :config
+    (evil-collection-init)))
+ (t
+  (message "Evil is disabled"))
+)
 
 (use-package command-log-mode
   :commands command-log-mode)
@@ -575,8 +587,12 @@ the vertical drag is done."
 (use-package forge
   :after magit)
 
-(use-package evil-nerd-commenter
-  :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+(if use-evil
+    (use-package evil-nerd-commenter
+      :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+    (message "Evil is disabled (evil-nerd-commenter)")
+)
+
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -613,9 +629,15 @@ the vertical drag is done."
   (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
 
   ;; Bind some useful keys for evil-mode
-  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
-  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
-  (evil-normalize-keymaps)
+  (cond
+   (use-evil
+    (nil (message "Evil mode disabled in efs/configure-eshel"))
+    (t
+     (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+     (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
+     (evil-normalize-keymaps)
+     )
+    ))
 
   (setq eshell-history-size         10000
         eshell-buffer-maximum-lines 10000
@@ -643,6 +665,7 @@ the vertical drag is done."
   :commands (dired dired-jump)
   :bind (("C-x C-j" . dired-jump))
   :custom ((dired-listing-switches "-agho"))
+  :if use-evil
   :config
   (evil-collection-define-key 'normal 'dired-mode-map
     "h" 'dired-single-up-directory
@@ -664,6 +687,7 @@ the vertical drag is done."
 
 (use-package dired-hide-dotfiles
   :hook (dired-mode . dired-hide-dotfiles-mode)
+  :if use-evil
   :config
   (evil-collection-define-key 'normal 'dired-mode-map
     "H" 'dired-hide-dotfiles-mode))
