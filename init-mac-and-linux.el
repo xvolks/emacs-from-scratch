@@ -1042,5 +1042,12 @@ Avec \\[], demande les arguments du programme (ARGS)."
 (require 'umka-mode)
 (fido-mode)
 
+;;;; Duplicate line keybinding
+(global-set-key (kbd "C-d") #'duplicate-line)
+
+;;;; Delete line keybinding
+(global-set-key (kbd "s-<backspace>") #'kill-whole-line)
+
+
 (provide 'init)
 ;;; init.el ends here
