@@ -2,3 +2,6 @@ etc/
 var/
 elpa/
 packages/
+custom.el
+.last-package-update-day
+eln-cache/
