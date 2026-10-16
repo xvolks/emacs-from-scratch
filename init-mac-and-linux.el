@@ -1040,7 +1040,7 @@ Avec \\[], demande les arguments du programme (ARGS)."
 
 (add-to-list 'load-path (expand-file-name (concat user-emacs-directory "umka-mode/")))
 (require 'umka-mode)
-(ido-mode)
+(fido-mode)
 
 (provide 'init)
 ;;; init.el ends here
