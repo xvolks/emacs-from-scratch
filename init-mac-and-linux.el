@@ -1048,5 +1048,12 @@ Avec \\[], demande les arguments du programme (ARGS)."
 ;;;; Delete line keybinding (Control + Delete)
 (global-set-key (kbd "C-<delete>") #'kill-whole-line)
 
+;;;; Comment/uncomment region keybinding (Control + /)
+(global-set-key (kbd "C-/") #'comment-dwim)
+
+;;;; Undo/Redo keybinding (Control + /)
+;; (global-set-key (kbd "C-u") #'undo)        ;; Use Cmd+Z on macOS, C-u is useful... I guess
+(global-set-key (kbd "C-S-u") #'undo-redo)
+
 (provide 'init)
 ;;; init.el ends here
