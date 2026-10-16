@@ -1045,9 +1045,8 @@ Avec \\[], demande les arguments du programme (ARGS)."
 ;;;; Duplicate line keybinding (Control + D)
 (global-set-key (kbd "C-d") #'duplicate-line)
 
-;;;; Delete line keybinding (Shift + Backspace)
-(global-set-key (kbd "S-<backspace>") #'kill-whole-line)
-
+;;;; Delete line keybinding (Control + Delete)
+(global-set-key (kbd "C-<delete>") #'kill-whole-line)
 
 (provide 'init)
 ;;; init.el ends here
